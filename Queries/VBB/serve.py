@@ -1,6 +1,7 @@
 """Local auto-refresh demo. Reuses prepare.py; exposes only map and latest data."""
 import argparse
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -36,7 +37,10 @@ def worker(existing=None, single_thread=False):
     if existing is not None:
         yield existing
         return
-    container = command(['docker', 'run', '-d', '--rm', '--entrypoint',
+    # Docker Engine on Linux/WSL has no host.docker.internal; share the host network instead.
+    network = (['--network', 'host', '--add-host', 'host.docker.internal:127.0.0.1']
+               if os.environ.get('NES_DOCKER_HOST_NETWORK') == '1' else [])
+    container = command(['docker', 'run', '-d', '--rm'] + network + ['--entrypoint',
                '/workspace/build-main-meos/nes-single-node-worker/nes-single-node-worker',
                '-v', f'{ROOT}:/workspace', '-w', '/workspace',
                'nebulastream/nes-development:mobility-twin-main-meos',
